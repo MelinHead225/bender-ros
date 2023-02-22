@@ -30,6 +30,7 @@
 		<material>Gazebo/Black</material>
 	</gazebo>
 
+	<!-- Gazebo ros controller -->
 	<gazebo>
 		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
 			<robotNamespace>/bender</robotNamespace>
@@ -37,6 +38,22 @@
 		</plugin>
 	</gazebo>
 
+	<!-- Gazebo base controller
+		tags: 
+		<robotNamespace>: name of robot
+		<alwaysOn>: when true the plugin should start running as soon as 
+			the simulation starts.
+		<updateRate>: rate at which the plugin is updated
+		<bodyName>: where to attach the plugin
+		<topicName>: receives ground truth pose information from the 
+			Gazebo simulation through this topic and uses it to control
+			the robot's position and orientation
+		<gaussianNoise>: amount of gaussian boise applyied to the pose data
+			to simulate sensor noise
+		<frameName>: given position of the robot
+		<xyzOffsets>: initial position
+		<rpyOffsets>: initial orientation
+		 -->
 	<gazebo>
 		<plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
 			<robotNamespace>/bender</robotNamespace>
@@ -51,6 +68,17 @@
 		</plugin>
 	</gazebo>
 
+	<!-- Gazebo Inertial Measurement Unit
+		(The IMU data contains information about the robot's 
+		linear and angular acceleration, as well as its orientation 
+		(roll, pitch, and yaw angles).)
+		tags:
+		<updateRate>: rate at which the plugin is updated
+		<robotNamespace>: name of robot
+		<bodyName>: where to attach the plugin
+		<frameId>: specifies the reference frame ID for the IMU data.
+		<topicName>: location to where IMU data is populated.
+	-->
 	<gazebo>
 		<plugin name="imu" filename="libhector_gazebo_ros_imu.so">
 			<updateRate>30.0</updateRate>

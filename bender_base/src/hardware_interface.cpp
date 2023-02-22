@@ -5,12 +5,20 @@
 namespace bender_base
 {
 
+/*
+  Constructor which initializes join_state, postition_joint, and velocity_joint interfaces
+*/
 BenderHardware::BenderHardware()
-{
+{   
+    //Initialize all joint names
     ros::V_string joint_names = boost::assign::list_of
         ("wheel_rf_joint")("wheel_rh_joint")("wheel_lf_joint")("wheel_lh_joint")
         ("leg_lf_joint")("leg_rf_joint")("leg_lh_joint")("leg_rh_joint");
 
+    /*
+      For every joint name create a "joint state handle" with pointers to the 
+      to the joint's position, velocity, and effort
+    */
     for (unsigned int i = 0; i < joint_names.size(); i++)
     {
         hardware_interface::JointStateHandle joint_state_handle(joint_names[i],
@@ -26,13 +34,17 @@ BenderHardware::BenderHardware()
             velocity_joint_interface_.registerHandle(joint_handle);
         }
     }
+
     registerInterface(&joint_state_interface_);
     registerInterface(&position_joint_interface_);
     registerInterface(&velocity_joint_interface_);
 
+    //set up a callback function to be called each time a message is received
     feedback_sub_ = nh_.subscribe("/bender_teensy_serial/feedback", 1, &BenderHardware::feedbackCallback, this);
+    //crete a publisher on a ROS topic to which the program can publish messages containing commands for the joints
     cmd_drive_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/bender_teensy_serial/cmd_drive", 1);
-	cmd_msg_.layout.dim.push_back(std_msgs::MultiArrayDimension());
+	//append a new dimention
+    cmd_msg_.layout.dim.push_back(std_msgs::MultiArrayDimension());
 	cmd_msg_.layout.dim[0].label = "joint_targets";
 	cmd_msg_.layout.dim[0].size = 4;
     cmd_msg_.layout.dim[0].stride = 1;
@@ -53,12 +65,15 @@ BenderHardware::BenderHardware()
             canbus_.add_axis(id3, "wheel_lh_joint") ) ) {
         ROS_FATAL("Failed to create one or more axis. Aborting.\n");
     }
+    //initialize driver
     can::ThreadedSocketCANInterfaceSharedPtr driver = 
         std::make_shared<can::ThreadedSocketCANInterface>();
+    //handle initialization of driver failure
     if (!driver->init(can_device, 0, can::NoSettings::create()))
     {
         ROS_FATAL("Failed to initialize can_device at %s\n", can_device.c_str());
     }
+    //create a state listener where if a state change occurs print error to console
     can::StateListenerConstSharedPtr state_listener = driver->createStateListener(
         [&driver](const can::State& s) {
             std::string err;
@@ -78,7 +93,7 @@ BenderHardware::BenderHardware()
     }
 }
 
-
+//deconstructor which stops the motors and setting the axis state to idle
 BenderHardware::~BenderHardware()
 {
     for (auto& name : can_node_names)
