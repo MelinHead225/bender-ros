@@ -42,13 +42,15 @@ bool onButtonPushed() {
 
   Serial.println("Button Pressed");
   
+  //toggle STOP
   stop.STOP = !stop.STOP;
+  //sends the stop object over the radio.  Returns true if transmission was sucessful
   bool report = radio.write(&stop, sizeof(stop));
 
   Serial.print("Sending: ");
   Serial.println(stop.STOP);
 
-  if (report) {
+  if (report) { //if transmission was successful
     uint8_t pipe;
     if (!radio.available(&pipe)) { // is there an ACK payload?
       Serial.println(F("Recieved: an empty ACK packet"));
@@ -64,10 +66,12 @@ bool onButtonFlipped() {
 
   Serial.println("Button Flipped");
   
+  //toggle blink
   stop.BLINK = !stop.BLINK;
+  //sends the stop object over the radio.  Returns true if transmission was sucessful
   bool report = radio.write(&stop, sizeof(stop));
 
-  if (report) {
+  if (report) { //if transmission was successful
     uint8_t pipe;
     if (!radio.available(&pipe)) { // is there an ACK payload?
       Serial.println(F("Recieved: an empty ACK packet"));
@@ -82,17 +86,13 @@ bool onButtonFlipped() {
 void setup() {
 
   Serial.begin(115200);
-  // while (!Serial) {
-  //   // some boards need to wait to ensure access to serial over USB
-  // }
-  // radio.powerUp();
   while (!radio.begin()) {
     Serial.println(F("Radio hardware is not responding!!"));
     delay(10);// while (1) {} // hold in infinite loop
   }
   radio.setChannel(115); // the old code used this, so why not reuse it?
   radio.setPALevel(RF24_PA_MAX); // set power level
-  radio.setDataRate(RF24_250KBPS);
+  radio.setDataRate(RF24_250KBPS); //set data rate
 
   // to use ACK payloads, we need to enable dynamic payload lengths (for all nodes)
   radio.enableDynamicPayloads();    // ACK payloads are dynamically sized
@@ -114,9 +114,11 @@ void setup() {
   radio.stopListening();
 #else
 
+  //set pins 1-3 to 'output'
   pinMode(RELAY_PIN_1, OUTPUT);
   pinMode(RELAY_PIN_2, OUTPUT);
   pinMode(RELAY_PIN_3, OUTPUT);
+  //set pins 1-3 initial value to 'HIGH'
   digitalWrite(RELAY_PIN_1, HIGH);
   digitalWrite(RELAY_PIN_2, HIGH);
   digitalWrite(RELAY_PIN_3, HIGH);

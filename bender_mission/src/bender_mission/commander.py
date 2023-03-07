@@ -32,23 +32,28 @@ class Commander:
         self.current_gps = msg
 
     def compass_callback(self, msg):
-        if isnan(self.home_heading):
+        if isnan(self.home_heading): #if not a number update home_heading
             self.home_heading = msg.data*pi/180.0
 
     def action_callback(self, fbk):
         return None
         
     def execute(self):
+        #if not a number log a warning and exit
         if isnan(self.home_heading):
             rospy.logwarn_throttle(1.0, "Waiting to receive initial heading..")
             return
+        #else for each goal
         for goal in self.goals:
             delta_lat  = goal[0] - self.start['lat'] # self.home_gps.latitude
             delta_long = goal[1] - self.start['long'] # self.home_gps.longitude
+            #convert GPS position to meters
             desired_point = self.latlong_to_meters(self.current_gps.latitude, delta_lat, delta_long)
-            desired_point[1] = -desired_point[1] 
+            desired_point[1] = -desired_point[1] #negate y value
+            #update location goals to meter positions
             self.current_goal.pose.position.x = desired_point[0]
             self.current_goal.pose.position.y = desired_point[1]
+            #set orientation to point towards self.home_heading by converting Euler angles to a quaternion represention
             self.current_goal.pose.orientation = Quaternion(*quaternion_from_euler(0,0,self.home_heading))
             self.current_goal.header = Header()
             self.current_goal.header.stamp = rospy.Time.now()
