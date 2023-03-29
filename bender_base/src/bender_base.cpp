@@ -47,6 +47,15 @@
 
 typedef boost::chrono::steady_clock time_source;
 
+/*
+  @brief Function to run as a seperate thread to coninously control the 
+  robot based on input from the controllers.
+
+  @param rate specifies the frequency at which the control loop should run
+  @param robot pointer the robotic hardware being controller
+  @param cm pointer which is responsible for managing various controllers
+  user to control the robot
+*/
 void controlThread(ros::Rate rate, bender_base::BenderHardware* robot, controller_manager::ControllerManager* cm)
 {
   time_source::time_point last_time = time_source::now();

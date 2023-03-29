@@ -5,12 +5,20 @@
 namespace bender_base
 {
 
+/*
+  Constructor which initializes join_state, postition_joint, and velocity_joint interfaces
+*/
 BenderHardware::BenderHardware()
-{
+{   
+    //Initialize all joint names
     ros::V_string joint_names = boost::assign::list_of
         ("wheel_rf_joint")("wheel_rh_joint")("wheel_lf_joint")("wheel_lh_joint")
         ("leg_lf_joint")("leg_rf_joint")("leg_lh_joint")("leg_rh_joint");
 
+    /*
+      For every joint name create a "joint state handle" with pointers to the 
+      to the joint's position, velocity, and effort
+    */
     for (unsigned int i = 0; i < joint_names.size(); i++)
     {
         hardware_interface::JointStateHandle joint_state_handle(joint_names[i],
@@ -26,13 +34,17 @@ BenderHardware::BenderHardware()
             velocity_joint_interface_.registerHandle(joint_handle);
         }
     }
+
     registerInterface(&joint_state_interface_);
     registerInterface(&position_joint_interface_);
     registerInterface(&velocity_joint_interface_);
 
+    //set up a callback function to be called each time a message is received
     feedback_sub_ = nh_.subscribe("/bender_teensy_serial/feedback", 1, &BenderHardware::feedbackCallback, this);
+    //crete a publisher on a ROS topic to which the program can publish messages containing commands for the joints
     cmd_drive_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/bender_teensy_serial/cmd_drive", 1);
-	cmd_msg_.layout.dim.push_back(std_msgs::MultiArrayDimension());
+	//append a new dimention
+    cmd_msg_.layout.dim.push_back(std_msgs::MultiArrayDimension());
 	cmd_msg_.layout.dim[0].label = "joint_targets";
 	cmd_msg_.layout.dim[0].size = 4;
     cmd_msg_.layout.dim[0].stride = 1;
@@ -53,12 +65,15 @@ BenderHardware::BenderHardware()
             canbus_.add_axis(id3, "wheel_lh_joint") ) ) {
         ROS_FATAL("Failed to create one or more axis. Aborting.\n");
     }
+    //initialize driver
     can::ThreadedSocketCANInterfaceSharedPtr driver = 
         std::make_shared<can::ThreadedSocketCANInterface>();
+    //handle initialization of driver failure
     if (!driver->init(can_device, 0, can::NoSettings::create()))
     {
         ROS_FATAL("Failed to initialize can_device at %s\n", can_device.c_str());
     }
+    //create a state listener where if a state change occurs print error to console
     can::StateListenerConstSharedPtr state_listener = driver->createStateListener(
         [&driver](const can::State& s) {
             std::string err;
@@ -78,7 +93,7 @@ BenderHardware::BenderHardware()
     }
 }
 
-
+//deconstructor which stops the motors and setting the axis state to idle
 BenderHardware::~BenderHardware()
 {
     for (auto& name : can_node_names)
@@ -94,10 +109,15 @@ void BenderHardware::read()
     // CAN Bus
     for (auto& name : can_node_names)
     {
-        const int node_id = canbus_.axis(name).node_id;
-        joints_[node_id].position = canbus_.axis(name).pos_enc_estimate * 2.0 * M_PI;
-        joints_[node_id].velocity = canbus_.axis(name).vel_enc_estimate * 2.0 * M_PI;
-        joints_[node_id].effort = joints_[node_id].command;
+        const odrive_can_ros::ODriveAxis this_axis = canbus_.axis(name);
+        if (!this_axis.is_active_)
+        {
+            ROS_WARN_THROTTLE(10, "%s is inactive", name.c_str());
+        }
+        const int node_id = this_axis.node_id;
+        joints_[node_id].position = this_axis.pos_enc_estimate * 2.0 * M_PI;
+        joints_[node_id].velocity = this_axis.vel_enc_estimate * 2.0 * M_PI;
+        joints_[node_id].effort = this_axis.idq_second;
     }
 
     // Serial
@@ -128,13 +148,19 @@ void BenderHardware::write()
 	// CAN Bus
     for (auto& name : can_node_names)
     {
-        const int node_id = canbus_.axis(name).node_id;
+        const odrive_can_ros::ODriveAxis this_axis = canbus_.axis(name);
+        if (!this_axis.is_active_ && this_axis.last_msg_time_ms_ < 1000)
+        {
+            canbus_.set_input_vel(this_axis, 0.0f);
+            canbus_.set_axis_requested_state(this_axis, AxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+        }
+        const int node_id = this_axis.node_id;
         float wheel_cmd = 0.0;
         // if (abs(joints_[node_id+4].position) - abs(joints_[node_id+4].command) <= 15*M_PI/180.0)
         {
             wheel_cmd = joints_[node_id].command / 2.0 / M_PI;
         }
-        canbus_.set_input_vel(canbus_.axis(name), wheel_cmd);
+        canbus_.set_input_vel(this_axis, wheel_cmd);
     }
     cmd_msg_.data.clear();
 	for (int i = 4; i < 8; i++)

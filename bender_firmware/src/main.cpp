@@ -61,7 +61,8 @@ ros::Subscriber<std_msgs::Float32MultiArray> cmd_subscriber("/bender_teensy_seri
 
 void setup()
 {
-	nh.initNode();
+	nh.initNode(); //initializes ROS node
+	//assign various fields
 	feedback_msg.name            = _jstate_name;
 	feedback_msg.position        = _jstate_pos;
 	feedback_msg.velocity        = _jstate_vel;
