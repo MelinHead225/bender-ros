@@ -1,9 +1,15 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
+<!-- tabbed widget: common GUI element allowing users to switch between multiple tabs or pages of conent
+parent: specifies parent widget of this tabbed widget
+name: specifies this widget's name -->
  <tabbed_widget parent="main_window" name="Main Window">
   <Tab tab_name="tab1" containers="1">
+   <!-- Defines a container to contain other widgets -->
    <Container>
+    <!-- Splits the container into mulitple areas --> 
     <DockSplitter count="4" orientation="-" sizes="0.250276;0.250276;0.249173;0.250276">
+     <!-- LF joint -->
      <DockArea name="...">
       <plot style="Lines" flip_y="false" mode="TimeSeries" flip_x="false">
        <range left="0.000000" bottom="-0.965854" right="21.132487" top="0.024267"/>
@@ -12,6 +18,7 @@
        <curve name="/bender_teensy_serial/cmd_drive/data.0" color="#1f77b4"/>
       </plot>
      </DockArea>
+     <!-- LH joint -->
      <DockArea name="...">
       <plot style="Lines" flip_y="false" mode="TimeSeries" flip_x="false">
        <range left="0.000000" bottom="-0.022882" right="21.132487" top="0.967239"/>
@@ -20,6 +27,7 @@
        <curve name="/bender_teensy_serial/cmd_drive/data.1" color="#1f77b4"/>
       </plot>
      </DockArea>
+     <!-- RF joint -->
      <DockArea name="...">
       <plot style="Lines" flip_y="false" mode="TimeSeries" flip_x="false">
        <range left="0.000000" bottom="-0.022882" right="21.132487" top="0.967239"/>
@@ -28,6 +36,7 @@
        <curve name="/bender_teensy_serial/cmd_drive/data.2" color="#d62728"/>
       </plot>
      </DockArea>
+     <!-- LH joint -->
      <DockArea name="...">
       <plot style="Lines" flip_y="false" mode="TimeSeries" flip_x="false">
        <range left="0.000000" bottom="-0.966546" right="21.132487" top="0.023574"/>
@@ -43,7 +52,7 @@
  </tabbed_widget>
  <use_relative_time_offset enabled="1"/>
  <!-- - - - - - - - - - - - - - - -->
- <!-- - - - - - - - - - - - - - - -->
+ <!-- Section of plugins, with child elements that specify settings for each plugin -->
  <Plugins>
   <plugin ID="DataLoad CSV">
    <default delimiter="0" time_axis=""/>

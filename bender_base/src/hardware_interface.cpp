@@ -35,6 +35,7 @@ BenderHardware::BenderHardware()
         }
     }
 
+    //register all interfaces
     registerInterface(&joint_state_interface_);
     registerInterface(&position_joint_interface_);
     registerInterface(&velocity_joint_interface_);
@@ -59,6 +60,7 @@ BenderHardware::BenderHardware()
     const unsigned short id1(nh_.param("wheel_rh_joint_node_id", 1));
     const unsigned short id2(nh_.param("wheel_lf_joint_node_id", 2));
     const unsigned short id3(nh_.param("wheel_lh_joint_node_id", 3));
+    //if unable to add the four joints of the robot ROS abort
     if ( !( canbus_.add_axis(id0, "wheel_rf_joint") &&
             canbus_.add_axis(id1, "wheel_rh_joint") &&
             canbus_.add_axis(id2, "wheel_lf_joint") &&
@@ -78,7 +80,7 @@ BenderHardware::BenderHardware()
         [&driver](const can::State& s) {
             std::string err;
             driver->translateError(s.internal_error, err);
-            fprintf(stderr, "CAN Device error: %s, asio: %s.\n", 
+            fprintf(stderr, "CAN Device error: %s, asio: %s.\n",
                 err.c_str(), s.error_code.message().c_str());
         }
     );
@@ -87,9 +89,9 @@ BenderHardware::BenderHardware()
     std::this_thread::sleep_for(500ms);
     for (auto& name : can_node_names)
     {
-        canbus_.clear_errors(canbus_.axis(name));
-        canbus_.set_input_vel(canbus_.axis(name), 0.0f);
-        canbus_.set_axis_requested_state(canbus_.axis(name), AxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+        canbus_.clear_errors(canbus_.axis(name)); //clear any errors associated with the CAN node's axis
+        canbus_.set_input_vel(canbus_.axis(name), 0.0f); //set velocity input 
+        canbus_.set_axis_requested_state(canbus_.axis(name), AxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);//set the state so that the axis will be contolled using a closed-loop control scheme
     }
 }
 
@@ -110,6 +112,7 @@ void BenderHardware::read()
     for (auto& name : can_node_names)
     {
         const odrive_can_ros::ODriveAxis this_axis = canbus_.axis(name);
+        //if axis isn't active send ROS warning
         if (!this_axis.is_active_)
         {
             ROS_WARN_THROTTLE(10, "%s is inactive", name.c_str());
@@ -121,18 +124,18 @@ void BenderHardware::read()
     }
 
     // Serial
-    boost::mutex::scoped_lock feedback_msg_lock(feedback_msg_mutex_, boost::try_to_lock);
-    if (feedback_msg_ && feedback_msg_lock)
+    boost::mutex::scoped_lock feedback_msg_lock(feedback_msg_mutex_, boost::try_to_lock); //create a lock on the mutex
+    if (feedback_msg_ && feedback_msg_lock) //make sure only one thread at a time can access the feedback_msg
     {
-		if (!steering_joints_homed_)
+		if (!steering_joints_homed_) //if joints aren't yet homed
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; i++) //set joint positions
             {
                 steering_joints_home_[i] = feedback_msg_->position[i]; 
             }
             steering_joints_homed_ = true;
         }
-        for (int i = 4; i < 8; i++)
+        for (int i = 4; i < 8; i++) //update position, velocity, and effort values based on feedback
 		{
             joints_[i].position = feedback_msg_->position[i-4] - steering_joints_home_[i-4];
 			joints_[i].velocity = feedback_msg_->velocity[i-4];
