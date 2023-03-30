@@ -68,6 +68,7 @@ void controlThread(ros::Rate rate, bender_base::BenderHardware* robot, controlle
     ros::Duration elapsed(elapsed_duration.count());
     last_time = this_time;
 
+    // Update control thread
     robot->read();
     cm->update(ros::Time::now(), elapsed);
     robot->write();
